@@ -1,5 +1,5 @@
-import lexer
-import parser
+import silly_lexer
+import silly_parser
 
 PROMPT = ":3 "
 
@@ -9,7 +9,7 @@ if __name__ == "__main__":
     
     while True:
         
-        syms = lexer.lex_all(raw) # str -> syms
+        syms = silly_lexer.lex_all(raw) # str -> syms
         print(syms)
         #expr = parse_syms(syms, []) # syms -> expr
         #print(expr)
