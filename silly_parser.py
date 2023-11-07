@@ -18,51 +18,49 @@ class Parser(Lark):
     // type annotations
 
     // top level program
-    prog    : expr
+        prog    : (expr)*
 
-        ?expr : numop2
-                | boolop2
+        ?expr   : if
+                | match
+                | op
 
-        ?numop2.1 : add
+        ?if     : "if" expr "then"? expr "else"? expr
 
+        ?match  : "match" expr (expr "=>" expr)+
+
+        ?op     : eq
+        ?eq     : not
+                | (eq | ID) "=" expr -> bool_eq
+                | "let"? ID "=" expr ("in"? expr)+ -> let_eq
+        ?not    : and
+                | "not" expr -> not
+        ?and    : or
+                | and "and" expr
+        ?or     : add
+                | and "or" expr
         ?add    : mul
                 | add "+" expr -> add
                 | add "-" expr -> sub
+                | "-" expr -> neg
         ?mul    : exp
                 | mul "*" expr -> mul
                 | mul "/" expr -> div
-        ?exp    : term
-                | exp "^" expr -> div
-
-        ?boolop2: and
-
-        ?and    : term
-                | and "and" expr
-
-        ?op1    : neg
-                | not
-
-        ?neg    : "-" term
-                | "-" expr
-
-        ?not    : "not" expr
-
-        ?term   : NUM   -> num
-                | STR   -> str
-                | BOOL  -> bool
-                | ID    -> id     
+        ?exp    : paren
+                | exp "^" expr -> exp
+        ?paren  : fcall
                 | "(" expr ")"
-  
+        ?fcall  : atom
+                | ID "(" expr? ("," expr)* ")" -> fcall
+        ?atom   : ID -> id
+                | NUM -> num
+                | STR -> str
+                | BOOL -> bool
 
-
-
-
-        // terminals
-        NUM: /-?\d+(\.\d+)?([eE][+-]?\d+)?/
-        STR: /".*?(?<!\\)"/
-        BOOL: /true|false/
-        ID  : /[a-z|A-Z]+[a-z|A-Z|0-9|_]*/ 
-        COMMENT: /#.*/
+        ID      : /[a-z|A-Z]+[a-z|A-Z|0-9|_]*/ 
+        NUM     : /-?\d+(\.\d+)?([eE][+-]?\d+)?/
+        STR     : /".*?(?<!\\)"/
+        BOOL.1  : /true|false/
+        COMMENT : /#.*/
 
         %import common.WS
         %ignore WS
@@ -77,4 +75,4 @@ class Parser(Lark):
     def parse(self, text: str):
         p = super().parse(text)
         print(p.pretty())
-        #return self.ast_transformer.transform(p)
+        return self.ast_transformer.transform(p)
