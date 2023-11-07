@@ -1,5 +1,5 @@
 import silly_lexer  as lexer
-import silly_parser as parser
+import pver.silly_parser_old as parser
 
 PROMPT = ":3 "
 

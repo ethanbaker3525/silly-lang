@@ -5,15 +5,22 @@ import silly_ast    as ast
 # is type checking at parse time a stupid idea? would allow for a cfg?
 
 PARSE_GRAMMAR = """
-<expr>  ::= (<Expr>)
+<expr>  ::= (<expr>)
         |   <>
 
-<op2>
+<op2>   ::= <expr> ^ <expr>
+        |   <expr> * <expr>
+        |   <expr> / <expr>
+        |   <expr> + <expr>
+        |   <expr> - <expr>
 
-<op1>   ::= <Paren> <(+|-|*|/|^)> <Expr>
-        |   <Paren>
+<op1>   ::= - <expr>
 
-<Lit>    ::= int
+<lit>   ::= int 
+        |   float
+        |   bool
+        |   char
+        |   str
 """
 
 # returns true if the first tok of ts matches the given tok class
@@ -157,7 +164,7 @@ def parseBinOp(ts: list[toks.Tok]) -> tuple[ast.Expr, list[toks.Tok]]: # i will 
     # shunting yard implementation
     # data structs for storing bin ops and exprs
     es:list[ast.Expr] = [e0]
-    binops:list[ast.BinOp] = []
+    binops:list[ast.Op2] = []
     min_precedence = 99
     while match_tok(ts0, (toks.Add, toks.Sub, toks.Mul, toks.Div, toks.Pow)): # while lookahead sees a bin op
         binops.append(get_op(ts0)) # adding the op to the list of binops

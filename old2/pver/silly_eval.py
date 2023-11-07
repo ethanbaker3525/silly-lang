@@ -1,4 +1,4 @@
-import silly_parser
+import pver.silly_parser_old as silly_parser_old
 
 def eval_expr(expr, types=[], env=[]): # expr ast -> expr ast
 

@@ -32,12 +32,12 @@ class Tok:
 # tokens with values
 class Int(Tok):
     
-    re_rep = re.compile("(\d+)")
+    re_rep = re.compile("(-?\d+)")
     def parse_value(self, raw_val):
         self.value = int(raw_val)
 
 class Float(Tok):
-    re_rep = re.compile("(\d+\.\d+)")
+    re_rep = re.compile("(-?\d+\.\d+)")
     def parse_value(self, raw_val):
         self.value = float(raw_val)
 
@@ -109,8 +109,8 @@ TOKS = [
     Equal,
     #SymComma,
     #SymDot,
-    #Sym1Quote,
-    #Sym2Quote,
+    #Quote1,
+    #Quote2,
     OpenParen,
     CloseParen,
     #SymOpenBracket,
