@@ -20,61 +20,61 @@ class Parser(Lark):
     // top level program
     prog    : expr
 
-    ?expr   : op1               // ops
-            | op2
-            | if                // conditionals
-            | match
-            | array             // list like types
-            | NUM   -> num      // terminals
-            | STR   -> str
-            | BOOL  -> bool
+        ?expr : numop2
+                | boolop2
 
-    // binary ops
-    ?op2    : expr "+"      expr -> add // num ops
-            | expr "-"      expr -> sub
-            | expr "*"      expr -> mul
-            | expr "/"      expr -> div
-            | expr "^"      expr -> pow
-            | expr "and"    expr -> and // bool ops
-            | expr "or"     expr -> or
-            | expr "xor"    expr -> xor
-            | expr "="      expr -> eq // eq ops
-            | expr "!="     expr -> neq
-            | expr ">"      expr -> gt
-            | expr "<"      expr -> lt
-            | expr ">="     expr -> geq
-            | expr "<="     expr -> leq
+        ?numop2.1 : add
 
-    ?op1    : "-"   expr     -> neg // num ops
-            | "not" expr     -> not // bool ops
-            | "("   expr ")"
+        ?add    : mul
+                | add "+" expr -> add
+                | add "-" expr -> sub
+        ?mul    : exp
+                | mul "*" expr -> mul
+                | mul "/" expr -> div
+        ?exp    : term
+                | exp "^" expr -> div
 
-    // list datatypes
-    array  : "(" [expr ("," expr)*] ")"           -> vec
-            | "[" [expr ("," expr)*] "]"           -> list
-            | "{" [expr ("," expr)*] "}"           -> set
-            //| "{" [expr ":" expr ("," expr ":" expr)*] "}" -> map
+        ?boolop2: and
 
-    // conditionals
-    if      : "if" expr expr expr
-    match   : "match" expr [expr "=>" expr]+
+        ?and    : term
+                | and "and" expr
 
-    // terminals
-    ID  : /[a-z|A-Z]+[a-z|A-Z|0-9|_]*/ 
-    NUM : /-?\d+(\.\d+)?([eE][+-]?\d+)?/
-    STR : /".*?(?<!\\)"/
-    BOOL: /true|false/
-    COMMENT: /#.*/
+        ?op1    : neg
+                | not
 
-    %import common.WS
-    %ignore WS
-    %ignore COMMENT
+        ?neg    : "-" term
+                | "-" expr
+
+        ?not    : "not" expr
+
+        ?term   : NUM   -> num
+                | STR   -> str
+                | BOOL  -> bool
+                | ID    -> id     
+                | "(" expr ")"
+  
+
+
+
+
+        // terminals
+        NUM: /-?\d+(\.\d+)?([eE][+-]?\d+)?/
+        STR: /".*?(?<!\\)"/
+        BOOL: /true|false/
+        ID  : /[a-z|A-Z]+[a-z|A-Z|0-9|_]*/ 
+        COMMENT: /#.*/
+
+        %import common.WS
+        %ignore WS
+        %ignore COMMENT
     '''
 
     def __init__(self):
 
-        super().__init__(self.__class__.grammar, start="prog")
+        super().__init__(self.__class__.grammar, start="prog", parser="lalr") # 
         self.ast_transformer = ast_utils.create_transformer(silly_ast, silly_ast.ToAst())
 
     def parse(self, text: str):
-        return self.ast_transformer.transform(super().parse(text))
+        p = super().parse(text)
+        print(p.pretty())
+        #return self.ast_transformer.transform(p)
