@@ -1,22 +1,25 @@
-import ctypes
-import mmap
 from sys import argv
-
 import silly_parser
+from silly_utils import get_type_str, err
 
 EXT = "silly"
+TEMPLATE = """global _entry
+global _type
+default rel
 
-TEMPLATE = """
-    default rel
-    section .text
-    global _entry
+section .data
+_type: db {tn} ; eval type is {ts}
+
+section .text
 _entry:{asm}
-
-    ret
-"""
+    ret"""
 
 def compile(e):
-    return TEMPLATE.format(asm=e.comp([]))
+    if not e.check_typing():
+        err("bad typing")
+    asm = e.comp([])
+    tn = e.get_eval_type()
+    return TEMPLATE.format(asm=asm, tn=tn, ts=get_type_str(tn))
 
 if __name__ == "__main__":
     if len(argv) == 2: # if not one cmdline arg do nothing
@@ -29,6 +32,7 @@ if __name__ == "__main__":
         with open(fname_silly, "r") as f:
             p = silly_parser.Parser()
             p.parse(f.read())
+            #sprint(p.p.pretty())
             ast = p.to_ast()
             asm = compile(ast)
         if fname_asm == None:

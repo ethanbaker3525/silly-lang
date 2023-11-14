@@ -21,7 +21,7 @@ class Parser(Lark):
         // think about the order of ops u want (not 1 = 1 is that false or an err)
 
     // top level program
-        prog    : expr
+        prog    : expr*
 
         ?expr   : let
                 | if
@@ -42,6 +42,7 @@ class Parser(Lark):
                 | add
         ?add    : add "+" mul -> add
                 | add "-" mul -> sub
+                | "-" add     -> neg
                 | mul
         ?mul    : mul "*" exp -> mul
                 | mul "/" exp -> div
@@ -91,9 +92,6 @@ if __name__ == "__main__":
 
         p = Parser()
         p.parse("""
-                x = 1
-                if x = 1
-                then 1
-                else 2
+                not true
                 """)
         print(p.p.pretty())
