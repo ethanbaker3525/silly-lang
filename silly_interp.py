@@ -2,15 +2,19 @@ from sys import argv
 
 import silly_parser
 
-parser = silly_parser.Parser()
+p = silly_parser.Parser()
 
 def evaluate(s):
-    parser.parse(s)
-    ast = parser.to_ast()
+    p.parse(s)
+    #print(p.p.pretty())
+    ast = p.to_ast()
     #print("ast: " + str(ast))
     #print("return type: " + str(ast.t))
     #print("ids in scope: " + str(ast.env))
-    return ast.eval([])       # returning the evaluated value
+    env = {}
+    x = ast.eval(env)  
+    #print(env["x"].v)
+    return x     # returning the evaluated value
 
 def res(e):
     #print(e)

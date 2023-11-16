@@ -21,7 +21,7 @@ class Parser(Lark):
         // think about the order of ops u want (not 1 = 1 is that false or an err)
 
     // top level program
-        prog    : expr*
+        prog    : expr
 
         ?expr   : let
                 | if
@@ -50,6 +50,7 @@ class Parser(Lark):
         ?exp    : exp "^" atom -> exp
                 | atom
         ?atom   : "(" expr ")"
+                | expr
                 | ID "(" (expr ("," expr)*)? ")" -> fun
                 | ID -> var
                 | NUM -> num

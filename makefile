@@ -1,4 +1,4 @@
-PY_COMP := silly_comp.py
+PY_COMP := silly_compiler.py
 RM := rm -f
 
 BUILD := ./build
