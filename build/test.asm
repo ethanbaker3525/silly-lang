@@ -7,18 +7,12 @@ _type: db 0 ; eval type is num
 
 section .text
 _entry:
-    ; int sub
-    ; num literal
     mov rax, 1
-    push rax
-    ; int sub
-    ; num literal
+    cmp rax, 1
+    je .if0
     mov rax, 2
-    push rax
-    ; num literal
-    mov rax, 3
-    pop r8
-    sub rax, r8
-    pop r8
-    sub rax, r8
+    jmp .if1
+.if0:
+    mov rax, 1
+.if1:
     ret

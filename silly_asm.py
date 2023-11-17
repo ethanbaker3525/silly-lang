@@ -69,7 +69,7 @@ class Asm:
         s = " " * ind
         #print(instrs)
         if instrs[0] == LBL:
-            s += instrs[1] + LBL
+            s = "." + instrs[1] + LBL
         elif instrs[0] in [RET]:
             s + instrs[0]
         elif instrs[0] in [JMP, JE, JNE, JG, JGE, JL, JLE, JZ, JNZ]:
@@ -100,6 +100,6 @@ class Asm:
             asm += self.concat_instrs(line, ind=ind, end=("" if i == (len(self.asm) - 1) else "\n"))
         return asm
 
-    def get_asm_full(self, template=TEMPLATE, s:str="_entry", t:str="_type", nasm_args:list[str]=["default ret"]) -> str:
+    def get_asm_full(self, template=TEMPLATE, s:str="_entry", t:str="_type", nasm_args:list[str]=["default rel"]) -> str:
         asm = Asm([self, [RET]]).get_asm(ind=4)
         return template.format(s=s, t=t, tn=self.eval_type, ts=self.eval_type_str, nasm_args="\n".join(nasm_args), asm=asm)

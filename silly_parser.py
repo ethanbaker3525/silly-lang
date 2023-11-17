@@ -12,13 +12,8 @@ class Parser(Lark):
     grammar = r'''
     // to add
     // match
-    // functions
-    // function definition
     // type definition
     // type annotations
-
-        // try left resursion?
-        // think about the order of ops u want (not 1 = 1 is that false or an err)
 
     // top level program
         prog    : expr
@@ -34,11 +29,17 @@ class Parser(Lark):
 
         ?op     : and
         ?and    : and "and" not -> and
-                | and "or" not -> or
+                | and "or"  not -> or
+                | and "xor" not -> xor
                 | not
         ?not    : "not" eq -> not
                 | eq
-        ?eq     : eq "=" add -> eq
+        ?eq     : eq "="  add -> eq
+                | eq "!=" add -> neq
+                | eq ">"  add -> gr
+                | eq ">=" add -> geq
+                | eq "<"  add -> lt
+                | eq "<=" add -> leq
                 | add
         ?add    : add "+" mul -> add
                 | add "-" mul -> sub

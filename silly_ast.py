@@ -1,8 +1,6 @@
-from lark import Lark, ast_utils, Transformer
+from lark import ast_utils, Transformer
 from silly_utils import err, asm, gensym, label, ext_env
 from silly_types import TYPES as types
-# val_to_bits
-# type checking is done at compile time not execution time
 
 # abstract ast class
 class _Ast(ast_utils.Ast):
@@ -20,10 +18,6 @@ class _Expr(_Ast):
             self.check_binding())
     def get_eval_type(self, env:dict[str, "_Expr"]) -> int:
         err("cannot get eval type of abstract expr")
-    def eval(self, env:dict[str, "_Expr"]) -> "_Expr": 
-        err("cannot evaluate abstract expr")
-    def comp(self, env) -> str:
-        err("cannot compile abstract expr")
 
 
 # abstract literal class
@@ -37,12 +31,6 @@ class _Lit(_Expr):
         return True
     def get_eval_type(self, env:dict[str, _Expr]) -> int:
         return types[self.__class__.t]
-    def eval(self, env:dict[str, _Expr]):
-        return self
-    def comp(self, env):
-        return asm(
-            ("mov", "rax", val_to_bits(self.v)),
-            c = self.__class__.t + " literal")
 
 class Num(_Lit):
     t = "num" # evals to types["num"]
@@ -78,29 +66,25 @@ class _Op1(_OpN):
 
 class Not(_Op1):
     t = "bool"
-    def eval(self, env:dict[str, _Expr]) -> _Expr:
-        return Bool(not self.es[0].v)
-    def comp(self, env) -> str:
-        return asm(
-            (self.es[0].comp(env)),
-            ("xor", "rax", "0x1"),
-            c = "boolean not"
-        )
 
 class Neg(_Op1):
     t = "num"
-    def eval(self, env:dict[str, _Expr]) -> _Expr:
-        return Num(- self.es[0].v)
-    def comp(self, env) -> str:
-        return asm(
-            (self.es[0].comp(env)),
-            ("not", "rax"),
-            ("inc", "rax"), c = "int negation"
-        )
     
 # abstract binary operator class
 # TODO make this class work so you dont have code duplication in and, or, etc
 class _Op2(_OpN):
+    pass
+
+class _Op2Bool(_Op2):
+    pass
+
+class And(_Op2Bool):
+    pass
+
+class Or(_Op2Bool):
+    pass
+
+class Xor(_Op2Bool):
     pass
 
 # abstract numeric binary operator class (+, -, *...)
@@ -113,56 +97,33 @@ class _Op2Num(_Op2): # TODO make this class part of Op2 for clean code
         )
     def get_eval_type(self, env:dict[str, _Expr]) -> int:
         return types["num"]
-    def eval(self, env:dict[str, _Expr]):
-        x = self.es[0].eval(env)
-        y = self.es[1].eval(env)
-        return Num(self.__class__.e_op(x.v, y.v))
-    def comp(self, env) -> str:
-        return asm( # TODO should be able to do this without push/ pop (not really actually)
-            (self.es[1].comp(env)),
-            ("push", "rax"),
-            (self.es[0].comp(env)),
-            ("pop", "r8"),
-            (self.__class__.c_op, "rax", "r8"),
-            c = "int " + self.__class__.c_op
-        )
 
 class Add(_Op2Num):
-    e_op = lambda x, y: x + y
-    c_op = "add"
+    pass
 
 class Sub(_Op2Num):
-    e_op = lambda x, y: x - y
-    c_op = "sub"
+    pass
 
 class Mul(_Op2Num):
-    e_op = lambda x, y: x * y
-    def comp(self, env) -> str:
-        return asm(
-            (self.es[1].comp(env)),
-            ("push", "rax"),
-            (self.es[0].comp(env)),
-            ("pop", "r8"),
-            ("mul", "r8"),
-            c = "int mul"
-        )
+    pass
 
 class Div(_Op2Num):
-    e_op = lambda x, y: x / y
-    def comp(self, env) -> str:
-        return asm(
-            (self.es[1].comp(env)),
-            ("push", "rax"),
-            (self.es[0].comp(env)),
-            ("cqo"),
-            ("pop", "r8"),
-            ("div", "r8"),
-            c = "int div"
-        )
+    pass
 
-class Pow(_Op2Num): # TODO
-    e_op = lambda x, y: x + y
-    c_op = "add"
+class Pow(_Op2Num):
+    pass
+
+class Gr(_Op2Num):
+    pass
+
+class Geq(_Op2Num):
+    pass
+
+class Lt(_Op2Num):
+    pass
+
+class Leq(_Op2Num):
+    pass
 
 class Eq(_Op2): # boolean equality operator 
     def check_typing(self, env) -> bool: # true if x has good typing and y has good typing and x_type = y_type
@@ -172,24 +133,9 @@ class Eq(_Op2): # boolean equality operator
         )
     def get_eval_type(self, env:dict[str, _Expr]) -> int:
         return types["bool"]
-    def eval(self, env:dict[str, _Expr]):
-        y = self.es[1].eval(env).v
-        x = self.es[0].eval(env).v
-        return Bool(x == y)
-    def comp(self, env) -> str:
-        asm0 = (self.es[0].comp(env))
-        asm1 = (self.es[1].comp(env))
-        return asm(
-            (asm0),
-            ("push", "rax"),
-            (asm1),
-            ("pop", "r8"),
-            ("cmp", "rax", "r8"),
-            ("mov", "rax", val_to_bits(False)),
-            ("mov", "r8", val_to_bits(True)),
-            ("cmove", "rax", "r8"),
-            c = "bool equals"
-        )
+
+class Neq(_Op2):
+    pass
 
 class If(_OpN):
     def check_typing(self, env) -> bool:
@@ -202,114 +148,30 @@ class If(_OpN):
         #assert self.es[1].get_eval_type(env) == self.es[2].get_eval_type(env)
         return self.es[1].get_eval_type(env)
 
-    def eval(self, env:dict[str, _Expr]) -> "_Expr":
-        if self.es[0].eval(env).v:
-            return self.es[1].eval(env)
-        x = self.es[2].eval(env)
-        return x
-    
-    def comp(self, env) -> str:
-        c_asm = self.es[0].comp(env)
-        t_asm = self.es[1].comp(env)
-        f_asm = self.es[2].comp(env)
-        t_lbl = gensym("if") # label to jump to for true
-        e_lbl = gensym("if") # end
-        return asm(
-            (c_asm),
-            ("cmp", "rax", val_to_bits(True)),
-            ("je", t_lbl),
-            (f_asm),
-            ("jmp", e_lbl),
-            (label(t_lbl)),
-            (t_asm),
-            (label(e_lbl)),
-            c = "if"
-        )
-
 class _Let(_Expr):
+    def __init__(self, *args) -> None:
+        #print(args)
+        self.id:str = args[0] 
+        self.ids:list[_Expr] = list(args[1:-2]) # any ids for closure
+        self.e0:_Expr = args[-2] # expr that is bound to id
+        self.e1:_Expr = args[-1] # expr that is evaluated with x bound to e0 
+
+class _Call(_Expr):
+    def __init__(self, *args):
+        self.id:str = args[0]
+        self.es:list[_Expr] = list(args[1:])
+
+class Var(_Call):
     pass
 
-class Var(_Expr):
-    def __init__(self, vid):
-        self.id = vid
-    def check_typing(self, env) -> bool:
-        return True
-    def check_binding(self, env) -> bool:
-        return self.id in env.keys()
-    def get_eval_type(self, env:dict[str, _Expr]) -> int:
-        return env[self.id].get_eval_type()
-    def eval(self, env: dict[str, "_Expr"]) -> "_Expr":
-        return env[self.id].eval(env)
-    def comp(self, env) -> str:
-        return super().comp(env) # TODO
+class LetVar(_Let):
+    pass
 
-class LetVar(_Expr):
-    def __init__(self, vid:str, ve:_Expr, e:_Expr):
-        self.id = vid
-        self.ve = ve
-        self.e = e
-    def check_typing(self, env) -> bool:
-        return (
-            self.ve.check_typing(env) and
-            self.e.check_typing(env)
-        )
-    def check_binding(self, env) -> bool:
-        return (
-            self.ve.check_binding(env) and
-            self.e.check_binding(env)
-        )
-    def get_eval_type(self, env:dict[str, _Expr]) -> int:
-        return self.es[1] # eval type of let id = e0 in e1 is type of e1
-    def eval(self, env:dict[str, _Expr]) -> "_Expr":
-        return self.e.eval(ext_env(env, self.id, self.ve.eval(env)))
-    def comp(self, env) -> str:
-        return super().comp(env) # TODO
+class Fun(_Call):
+    pass
 
-# function call
-class Fun(_Expr):
-    def __init__(self, fid, *es): # f(expr0, expr1)
-        self.id = fid # f
-        self.es = es # expr0, expr1
-    def check_typing(self, env) -> bool:
-        return not False in [e.check_typing(env) for e in self.es]# TODO must check that bound vars are correct type too
-    def check_binding(self, env) -> bool:
-        return (
-            (not False in [e.check_binding(env) for e in self.es]) and
-            self.id in env.keys()
-        )
-    def get_eval_type(self, env: dict[str, "_Expr"]) -> int:
-        return env[self.id].get_eval_type()
-    def eval(self, env: dict[str, "_Expr"]) -> "_Expr":
-        lf = env[self.id]
-        ps = [e.eval(env) for e in self.es]
-        env = ext_env(env, lf.ids, ps)
-        #print(env["x"].v)
-        return lf.f.eval(env)
-        # TODO fix unintended behavior like
-        # f() = x
-        # x = 100
-        # f() -> 100
-        # (could do this by checking the number of ids given matches expected (this may just fix itself when correct typing is added))
-    def comp(self, env) -> str: # TODO
-        return super().comp(env)
-
-# function definition
-class LetFun(_Expr):
-    def __init__(self, fid, *args): # given f(x, y) = x + y ...
-        self.id = fid # f
-        self.ids = [var.id for var in args[:-2]] # x, y
-        self.f = args[-2] # x + y
-        self.e = args[-1] # ...
-    def check_typing(self, env) -> bool:
-        return True # TODO (maybe fix this by implementing generic that has .expects_ids which gives the expected types as well)
-    def check_binding(self, env) -> bool:
-        return self.e.check_binding(ext_env(env, self.ids, ([None] * len(self.ids))))
-    def get_eval_type(self, env: dict[str, "_Expr"]) -> int:
-        return self.e.get_eval_type(ext_env(env, self.id, self))
-    def eval(self, env: dict[str, "_Expr"]) -> "_Expr":
-        return self.e.eval(ext_env(env, self.id, self))
-    def comp(self, env) -> str: # TODO
-        return super().comp(env)
+class LetFun(_Let):
+    pass
 
 class ToAst(Transformer):
     def ID(self, s):
