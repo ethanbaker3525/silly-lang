@@ -108,12 +108,12 @@ def interp_op2bool(op, e0, e1, env):
             return Bool((v0 and not v1) or (v1 and not v0))
 
 # utility functions
-def print_res(x):
+def str_res(x):
     match x:
         case Lit():
-            print(x.v)
+            return str(x.v)
         case Closure():
-            print("closure")
+            return "closure"
         case _:
             raise Exception(x)
 
@@ -124,9 +124,10 @@ def interp_code(s, print_result=True, print_tree=False):
         print(p.p.pretty()) 
     ast = p.to_ast()
     x = interp(ast)
+    s = str_res(x)
     if print_result:
-        print_res(x)
-    return x
+        print(s)
+    return s
 
 if __name__ == '__main__':
     
