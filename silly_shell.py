@@ -100,29 +100,6 @@ class Shell():
 
     def read_command(self):
         pass
-        
-"""def relmv(scr, y, x, absy=False, absx=False, stopy=(0, 10), stopx=(0, 10)):
-    ory, orx = scr.getyx()
-    # checking for abs positioning
-    if absy:
-        y = y
-    else:
-        y = ory + y
-    if absx:
-        x = x
-    else:
-        x = orx + x
-    # checking for stops being exceeded
-    if y < stopy[0]:
-        y = stopy[0]
-    elif y > stopy[1]:
-        y = stopy[1]
-    if x < stopx[0]:
-        x = stopx[0]
-    elif x > stopx[1]:
-        x = stopx[1] 
-
-    scr.move(y, x)"""
 
 if __name__ == "__main__":
     shell = Shell()

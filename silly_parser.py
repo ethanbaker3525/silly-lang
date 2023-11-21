@@ -7,7 +7,11 @@ from lark.tree import Meta
 from lark.exceptions import *
 from lark import UnexpectedInput
 
+from silly_ast import (
+    ToAst, 
+    _Ast as Ast)
 import silly_ast as ast
+
 from silly_err import *
 
 class Parser(Lark):
@@ -88,6 +92,10 @@ class Parser(Lark):
         except Exception as e:
             raise e
 
+def parse(s:str) -> Ast:
+    p = Parser()
+    p.parse(s)
+    return p.to_ast()
 
 if __name__ == "__main__":
 

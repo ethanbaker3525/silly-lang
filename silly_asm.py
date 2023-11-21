@@ -103,3 +103,11 @@ class Asm:
     def get_asm_full(self, template=TEMPLATE, s:str="_entry", t:str="_type", nasm_args:list[str]=["default rel"]) -> str:
         asm = Asm([self, [RET]]).get_asm(ind=4)
         return template.format(s=s, t=t, tn=self.eval_type, ts=self.eval_type_str, nasm_args="\n".join(nasm_args), asm=asm)
+
+    def write(self, path):
+        with open(path, "w") as file:
+            file.write(self.get_asm_full())
+    
+
+def offset(reg, nbytes):
+    return "[" + reg + "+" + str(nbytes*8) + "]"

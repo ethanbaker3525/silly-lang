@@ -5,8 +5,6 @@ from silly_ast import (
     _Expr as Expr,
     _Lit as Lit,
     _Op2 as Op2,
-    _Op2Num as Op2Num, 
-    _Op2Bool as Op2Bool,
     _Op1 as Op1, 
     _OpN as OpN,
     _Let as Let)
@@ -14,7 +12,7 @@ from silly_ast import *
 from silly_asm import *
 from silly_env import *
 
-def interp(e:Expr):
+def interp(e:Expr) -> Expr:
     return interp_env(e, Env({}))
 
 def interp_env(e:Expr, env:Env):
@@ -34,20 +32,29 @@ def interp_env(e:Expr, env:Env):
         case Let():
             return interp_let(e, e.id, e.ids, e.e0, e.e1, env)
         case Fun():
-            es = [interp_env(e, env) for e in e.es]
-            c = env.lookup(e.id) # getting the closure from the env
-            cenv = c.bind(es)
-            return interp_env(c.e, env.ext(cenv)) # interp closure with bound params
+            return interp_fun(e, e.id, e.es, env)
         case _:
             raise Exception("cannot interpret '" + str(e) + "'")
 
-def interp_let(x:Expr, xid:str, _vars:list[Var], e0:Expr, e1:Expr, env:Env):
+def interp_let(x:Expr, xid:str, fvars:list[Var], e0:Expr, e1:Expr, env:Env):
     match x:
         case LetVar():
             return interp_env(e1, env.ext(Env({xid: interp_env(e0, env)})))
         case LetFun():
-            ids = [var.id for var in _vars]
+            ids = [var.id for var in fvars]
             return interp_env(e1, env.ext(Env({xid: Closure(ids, e0, env)})))
+
+def interp_fun(e:Expr, fid:str, es:list[Expr], env:Env):
+    match fid:
+        case "print":
+            pass
+        case "input":
+            pass
+        case _:
+            es = [interp_env(e, env) for e in es]
+            cl = env.lookup(fid) # getting the closure from the env
+            clenv = cl.bind(es)
+            return interp_env(cl.e, env.ext(clenv)) # interp closure with bound params
             
 def interp_op1(op:Expr, e:Expr, env:Env):
     match op:
@@ -57,21 +64,6 @@ def interp_op1(op:Expr, e:Expr, env:Env):
             return Bool(not interp_env(e, env).v)
 
 def interp_op2(op:Expr, e0:Expr, e1:Expr, env:Env):
-    match op:
-        case Op2Num():
-            return interp_op2num(op, e0, e1, env)
-        case Op2Bool():
-            return interp_op2bool(op, e0, e1, env)
-        case Eq():
-            v0 = interp_env(e0, env).v
-            v1 = interp_env(e1, env).v
-            return Bool(v0 == v1)
-        case Neq():
-            v0 = interp_env(e0, env).v
-            v1 = interp_env(e1, env).v
-            return Bool(v0 != v1)
-
-def interp_op2num(op:Expr, e0:Expr, e1:Expr, env:Env):
     v0 = interp_env(e0, env).v
     v1 = interp_env(e1, env).v
     match op:
@@ -95,17 +87,22 @@ def interp_op2num(op:Expr, e0:Expr, e1:Expr, env:Env):
             return Bool(v0 < v1)
         case Leq():
             return Bool(v0 <= v1)
-
-def interp_op2bool(op, e0, e1, env):
-    v0 = interp_env(e0, env).v
-    v1 = interp_env(e1, env).v
-    match op:
+        # boolean
         case And():
             return Bool(v0 and v1)
         case Or():
             return Bool(v0 or v1)
         case Xor():
             return Bool((v0 and not v1) or (v1 and not v0))
+        # equality
+        case Eq():
+            v0 = interp_env(e0, env).v
+            v1 = interp_env(e1, env).v
+            return Bool(v0 == v1)
+        case Neq():
+            v0 = interp_env(e0, env).v
+            v1 = interp_env(e1, env).v
+            return Bool(v0 != v1)
 
 # utility functions
 def str_res(x):
