@@ -1,6 +1,14 @@
 from sys import exit as sysexit
 from lark.exceptions import *
 
+class SillyException(Exception): pass
+
+class CompErr(SillyException): pass
+
+class InterpErr(SillyException): pass
+
+class ParseErr(SillyException): pass
+
 def err(e:Exception, text:str):
     match e:
         case UnexpectedInput():

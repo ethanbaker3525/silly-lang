@@ -2,7 +2,7 @@ import curses
 from curses import wrapper
 from time import sleep
 
-from silly_interpreter import interp_code
+from silly_interp import interp_code
 
 # this is kinda a mess, you need to make some functions that can actually be used and maintained easily
 # TODO write a function that prints out a str and handles the line and cursor movement

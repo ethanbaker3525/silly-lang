@@ -1,5 +1,4 @@
 from lark import ast_utils, Transformer
-from silly_utils import err, asm, gensym, label, ext_env
 from silly_types import *
 from silly_env import Env
 
@@ -10,17 +9,16 @@ class _Ast(ast_utils.Ast):
 # abstract expr class
 class _Expr(_Ast):
     def check_typing(self, env) -> bool:
-        err("cannot check typing of abstract expr")
+        raise Exception("cannot check typing of abstract expr")
     def check_binding(self, env) -> bool:
-        err("cannot check binding of abstract expr")
+        raise Exception("cannot check binding of abstract expr")
     def has_side_effects(self, env) -> bool:
         return True
     def check_errs(self, env) -> bool:
-        return (
-            self.check_typing() and
-            self.check_binding())
+        for f in [self.check_typing, self.check_binding]:
+            assert f()
     def get_eval_type(self, env:dict[str, "_Expr"]) -> int:
-        err("cannot get eval type of abstract expr")
+        raise Exception("cannot get eval type of abstract expr")
 
 
 # abstract literal class
@@ -62,8 +60,8 @@ class _OpN(_Op):
         return True
     def check_binding(self, env:Env) -> bool:
         for i in range(len(self.es)):
-            if not (self.es[i].check_binding() and 
-                    self.es[i].get_eval_type() == self.__class__.takes[i]):
+            if not (self.es[i].check_binding(env) and 
+                    self.es[i].get_eval_type(env) == self.__class__.takes[i]):
                 return False
         return True
     def has_side_effects(self, env) -> bool:
@@ -142,10 +140,18 @@ class Neq(_Op2):
     evals = BOOL
 
 class If(_Expr):
-    def __init__(self, c, t, f):
+    def __init__(self, c:_Expr, t:_Expr, f:_Expr):
         self.c = c
         self.t = t
         self.f = f
+    def get_eval_type(self, env: dict[str, "_Expr"]) -> int:
+        return self.t.get_eval_type(env)
+    def check_typing(self, env) -> bool:
+        return (self.c.check_typing(env) and
+                self.t.check_typing(env) and
+                self.f.check_typing(env) and
+                self.c.get_eval_type(env) == BOOL and
+                self.t.get_eval_type(env) == self.f.get_eval_type(env))
 
 class _Let(_Expr):
     def __init__(self, *args) -> None:
@@ -155,14 +161,14 @@ class _Let(_Expr):
         self.e0:_Expr = args[-2] # expr that is bound to id
         self.e1:_Expr = args[-1] # expr that is evaluated with x bound to e0 
     def get_eval_type(self, env:Env) -> int:
-        return self.e1.get_eval_type(env)
+        return self.e1.get_eval_type(env.ext(Env({self.id:self.e0})))
 
 class _Call(_Expr):
     def __init__(self, *args):
         self.id:str = args[0]
         self.es:list[_Expr] = list(args[1:])
     def get_eval_type(self, env:Env) -> int:
-        return NUM
+        return env.lookup(self.id).get_eval_type(env)
 
 class Var(_Call):
     pass

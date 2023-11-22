@@ -2,6 +2,10 @@
 
 # f(x,y,z) = x + 1 * 3 * y * z + a -> {f:closure([x, y, z], expr(x + 1 * 3 * y * z + a))}
 
+"""
+THIS FILE HANDLES CLASSES AND METHODS FOR INTERPRETED AND COMPILE TIME ENVIROMENT VARIABLES
+"""
+
 class Closure:
     def __init__(self, ids:list[str], e, env:"Env"):
         self.ids:list[str] = ids
@@ -26,6 +30,8 @@ class Env:
             binds[xid] = e
         return Env(binds)
 
+# CEnv and Env could be combined into one class, might make implementation easier
+# Just make Env have a virtual stack enviroments, which gets an offset to another list holding values or closures
 class CEnv:
     def __init__(self, stack:list[int]):
         self.stack = stack
@@ -37,7 +43,8 @@ class CEnv:
         for i, sid in enumerate(self.stack):
             if sid == xid:
                 return len(self.stack) - i - 1
-    def add_offset(self, n:int, ph=None):
+        raise Exception(xid + " not found in env")
+    def add_offset(self, n:int, ph="offset"):
         stack = list(self.stack)
         for i in range(abs(n)):
             stack.append(ph)
@@ -48,4 +55,5 @@ class CEnv:
         stack = list(self.stack)
         for xid in env.stack:
             stack.append(xid)
+        assert not None in stack
         return CEnv(stack)

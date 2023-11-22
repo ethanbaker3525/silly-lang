@@ -96,11 +96,3 @@ def parse(s:str) -> Ast:
     p = Parser()
     p.parse(s)
     return p.to_ast()
-
-if __name__ == "__main__":
-
-    p = Parser()
-    p.parse("""
-        not true
-    """)
-    print(p.p.pretty())

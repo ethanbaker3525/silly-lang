@@ -12,23 +12,24 @@ from silly_ast import *
 from silly_asm import *
 from silly_env import *
 from silly_types import get_type_str
+from silly_utils import val_to_bits, gensym
+from silly_err import CompErr
 
 def comp(e:Expr) -> Asm:
-    et = e.get_eval_type({})
-    return Asm(
-        [comp_env(e, CEnv([]))], 
-        eval_type=et, 
-        eval_type_str=get_type_str(et))
+    eval_type = e.get_eval_type(Env({}))
 
-def comp_env(e, env:CEnv) -> Asm:
+    return Asm([
+        [comp_env(e, CEnv([]))],
+        [RET]],  eval_type=eval_type)
+
+def comp_env(e, env:CEnv, sect="entry") -> Asm:
     match e:
         case Lit():
             return Asm([
                 [MOV, RAX, val_to_bits(e.v)]])
         case Var():
             return Asm([
-                [MOV, RAX, offset(RSP, env.lookup(e.id))]
-            ])
+                [MOV, RAX, offset(RSP, env.lookup(e.id))]])
         case Op1():
             return comp_op1(e, e.es[0], env)
         case Op2():
@@ -37,18 +38,18 @@ def comp_env(e, env:CEnv) -> Asm:
             lbt = gensym("if")
             lbe = gensym("if")
             return Asm([
-                [comp_env(e.es[0], env)],
+                [comp_env(e.c, env)],
                 [CMP, RAX, val_to_bits(True)],
                 [JE,  lbt],
-                [comp_env(e.es[2], env)],
+                [comp_env(e.f, env)],
                 [JMP, lbe],
                 [LBL, lbt],
-                [comp_env(e.es[1], env)],
+                [comp_env(e.t, env)],
                 [LBL, lbe]])
         case Let():
             return comp_let(e, e.id, e.ids, e.e0, e.e1, env)
         case Fun():
-            raise Exception("unimplemented")
+            raise NotImplementedError("fun call")
         case _:
             raise Exception("cannot comp " + str(e))
 
@@ -61,7 +62,19 @@ def comp_let(x:Expr, xid:str, fvars:list[Var], e0:Expr, e1:Expr, env:CEnv):
                 [comp_env(e1, env.ext(CEnv([xid])))],
                 [ADD, RSP, 8]])
         case LetFun():
-            raise Exception("unimplemented")
+            fid = gensym(xid)
+            f = Asm([
+                [comp_env(e0, env.ext(CEnv(["return"] + fvars)))]
+            ], sect=fid)
+            return Asm([
+                # eval e1 in env that includes f
+                [LEA, RAX, "_" + fid], # TODO this "_" stuff is bad
+                [PUSH, RAX],
+                [comp_env(e1, env.ext(CEnv([fid])))],
+                [ADD, RSP, 8],
+                # f asm (assumes stack holds params in reverse order and then return pointer)
+                [f.set_sect(fid)]
+            ])
 
 def comp_op1(op, e0, env:CEnv):
     match op:
@@ -74,6 +87,8 @@ def comp_op1(op, e0, env:CEnv):
             return Asm([
                 [comp_env(e0, env)],
                 [XOR, RAX, 0x1]])
+        case _ :
+            raise CompErr("cannot comp " + str(op))
 
 def comp_op2(op, e0, e1, env:CEnv):
     asm_es = Asm([
@@ -103,15 +118,21 @@ def comp_op2(op, e0, e1, env:CEnv):
                 [POP, R8],
                 [DIV, R8]])
         case Pow(): # e0 ^ e1
-            raise Exception("unimplemented")
+            raise NotImplementedError("^")
         case Gr():
-            raise Exception("unimplemented") # maybe sepparate the funs that return int vs bool for simpler code
+            raise NotImplementedError(">")
         case Geq():
-            raise Exception("unimplemented") 
+            raise NotImplementedError(">=")
         case Lt():
-            raise Exception("unimplemented") 
+            raise NotImplementedError("<")
         case Leq():
-            raise Exception("unimplemented") 
+            raise NotImplementedError("<=")
+        case And():
+            raise NotImplementedError("and")
+        case Or():
+            raise NotImplementedError("or")
+        case Xor():
+            raise NotImplementedError("xor")
         case Eq(): # e0 = e1
             return Asm([
                 [asm_es],
@@ -120,18 +141,10 @@ def comp_op2(op, e0, e1, env:CEnv):
                 [MOV,   RAX, val_to_bits(False)],
                 [MOV,   R8, val_to_bits(True)],
                 [CMOVE, RAX, R8]])
-
-# utility functions
-def val_to_bits(v):
-    if type(v) == int:
-        return v
-    elif type(v) == bool:
-        if v: 
-            return 1
-        return 0
-    elif type(v) == str:
-        assert len(v) == 1
-        return ord(v[0])
+        case Neq():
+            raise NotImplementedError("!=") 
+        case _ :
+            raise CompErr("cannot comp " + str(op))
 
 if __name__ == "__main__":
     EXT = "silly"
