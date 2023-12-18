@@ -8,18 +8,22 @@ class _Ast(ast_utils.Ast):
 
 # abstract expr class
 class _Expr(_Ast):
+    # typing
+    def get_param_types(self, env) -> list:
+        raise Exception("cannot get param types of abstract expr")
+    def get_eval_type(self, env:dict[str, "_Expr"]) -> int:
+        raise Exception("cannot get eval type of abstract expr")
+    # errs
     def check_typing(self, env) -> bool:
         raise Exception("cannot check typing of abstract expr")
     def check_binding(self, env) -> bool:
         raise Exception("cannot check binding of abstract expr")
-    def has_side_effects(self, env) -> bool:
-        return True
     def check_errs(self, env) -> bool:
         for f in [self.check_typing, self.check_binding]:
             assert f()
-    def get_eval_type(self, env:dict[str, "_Expr"]) -> int:
-        raise Exception("cannot get eval type of abstract expr")
-
+    # optimization
+    def has_side_effects(self, env) -> bool:
+        return True
 
 # abstract literal class
 class _Lit(_Expr):
@@ -31,6 +35,8 @@ class _Lit(_Expr):
         return True
     def has_side_effects(self, env) -> bool:
         return False
+    def get_param_types(self, env) -> list:
+        return []
     def get_eval_type(self, env:Env) -> int:
         return self.__class__.evals
 
@@ -40,8 +46,23 @@ class Num(_Lit):
 class Bool(_Lit):
     evals = BOOL
 
-class Str(_Lit):
-    evals = STR
+#class Str(_Lit):
+#    evals = STR
+
+class _Multi(_Expr):
+    def __init__(self, *args):
+        self.es = args
+
+#class Array(_Multi):
+#    pass
+
+class Cons(_Multi):
+    pass
+
+class _Unit(_Lit):
+    def __init__(self):
+        self.v = None
+    evals = UNIT
 
 class _Op(_Expr):
     pass
@@ -50,8 +71,13 @@ class _Op(_Expr):
 class _OpN(_Op):
     def __init__(self, *args:tuple[_Expr]):
         self.es:tuple[_Expr] = args
+        
+    # types that 
     def get_eval_type(self, env:Env) -> int:
         return self.__class__.evals
+    def get_param_types(self, env) -> list:
+        return self.__class__.takes
+
     def check_typing(self, env:Env) -> bool:
         for i in range(len(self.es)):
             if not (self.es[i].check_typing(env) and 
@@ -139,13 +165,20 @@ class Eq(_Op2): # boolean equality operator
 class Neq(_Op2):
     evals = BOOL
 
+class Cont(_Op2):
+    def get_eval_type(self, env: dict[str, "_Expr"]) -> int:
+        return self.es[1].get_eval_type(env)
+
 class If(_Expr):
     def __init__(self, c:_Expr, t:_Expr, f:_Expr):
         self.c = c
         self.t = t
         self.f = f
     def get_eval_type(self, env: dict[str, "_Expr"]) -> int:
+        assert self.t.get_eval_type(env) == self.f.get_eval_type(env)
         return self.t.get_eval_type(env)
+    def get_param_types(self, env) -> list:
+        return [-1, -1, -1]
     def check_typing(self, env) -> bool:
         return (self.c.check_typing(env) and
                 self.t.check_typing(env) and
@@ -168,7 +201,8 @@ class _Call(_Expr):
         self.id:str = args[0]
         self.es:list[_Expr] = list(args[1:])
     def get_eval_type(self, env:Env) -> int:
-        return env.lookup(self.id).get_eval_type(env)
+        # ALL FUNCTIONS CURRENTLY RETURN INT
+        return 0 #env.lookup(self.id).get_eval_type(env)
 
 class Var(_Call):
     pass

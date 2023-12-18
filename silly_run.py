@@ -7,7 +7,7 @@ from shutil import rmtree
 from silly_parser import parse
 from silly_comp import comp
 from silly_interp import interp
-from silly_utils import lit_to_str, str_to_val, lit_to_val
+from silly_utils import *
 
 def comp_main_o(main_c_path, main_o_path, cc="gcc", cc_flags=["-elf", "-c", "-o"]):
     subprocess.run([cc, *cc_flags, main_o_path, main_c_path])
@@ -30,9 +30,9 @@ def comp_run_str(s:str, main_c_path=Path("main.c"), build_path=Path("./.silly"),
     asm_o_path = build_path / Path(name + ".o")
     bin_path = build_path / Path(name)
     # building bin
-    ast = parse(s)
-    asm = comp(ast)
-    asm.write(asm_path)
+    ast = parse(s) # parsing str to ast
+    asm = comp(ast) # getting asm str
+    write_prog_file(asm, asm_path) # writing .asm
     comp_main_o(main_c_path, main_o_path)
     comp_o(asm_path, asm_o_path)
     comp_bin(asm_o_path, main_o_path, bin_path)

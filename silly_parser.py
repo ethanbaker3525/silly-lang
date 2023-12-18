@@ -28,13 +28,16 @@ class Parser(Lark):
     ?expr   : let
             | if
             | op
+            | cont
 
     ?let    : ID "=" expr expr -> let_var
             | ID "(" (expr ("," expr)*)? ")" "=" expr expr -> let_fun
     
     ?if     : "if" expr "then" expr "else" expr -> if
     
-    ?op     : and
+    ?op     : cont
+    ?cont   : cont ";" and -> cont
+            | and
     ?and    : and "and" not -> and
             | and "or"  not -> or
             | and "xor" not -> xor
@@ -61,6 +64,9 @@ class Parser(Lark):
             | expr
             | ID "(" (expr ("," expr)*)? ")" -> fun
             | ID -> var
+            // | "(" expr ("," expr)+ ")" -> array
+            | "[" expr ("," expr)+ "]" -> list
+            // | "{" expr ("," expr)+ "}" -> set
             | NUM -> num
             | STR -> str
             | BOOL -> bool
@@ -92,7 +98,9 @@ class Parser(Lark):
         except Exception as e:
             raise e
 
-def parse(s:str) -> Ast:
+def parse(s:str, print_tree=True) -> Ast:
     p = Parser()
     p.parse(s)
+    if print_tree:
+        print(p.p.pretty())
     return p.to_ast()

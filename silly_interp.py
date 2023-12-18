@@ -4,13 +4,14 @@ from silly_parser import Parser
 from silly_ast import (
     _Expr as Expr,
     _Lit as Lit,
+    _Unit as Unit,
     _Op2 as Op2,
     _Op1 as Op1, 
     _OpN as OpN,
     _Let as Let)
 from silly_ast import *
-from silly_asm import *
 from silly_env import *
+from silly_utils import *
 
 def interp(e:Expr) -> Expr:
     return interp_env(e, Env({}))
@@ -21,14 +22,17 @@ def interp_env(e:Expr, env:Env):
             return e
         case Var():
             return env.lookup(e.id) # no need to interp cause even if x holds a func, calling "x" will not eval
+        case Cont():
+            interp_env(e.es[0], env)
+            return interp_env(e.es[1], env)
         case Op1():
             return interp_op1(e, e.es[0], env)
         case Op2():
             return interp_op2(e, e.es[0], e.es[1], env)
         case If():
-            if interp_env(e.es[0], env).v:
-                return interp_env(e.es[1], env)
-            return     interp_env(e.es[2], env)
+            if interp_env(e.c, env).v:
+                return interp_env(e.t, env)
+            return     interp_env(e.f, env)
         case Let():
             return interp_let(e, e.id, e.ids, e.e0, e.e1, env)
         case Fun():
@@ -47,9 +51,10 @@ def interp_let(x:Expr, xid:str, fvars:list[Var], e0:Expr, e1:Expr, env:Env):
 def interp_fun(e:Expr, fid:str, es:list[Expr], env:Env):
     match fid:
         case "print":
-            pass
+            print(lit_to_str(interp_env(es[0], env)))
+            return Unit()
         case "input":
-            pass
+            return Num(ord((input() + chr(0))[0]))
         case _:
             es = [interp_env(e, env) for e in es]
             cl = env.lookup(fid) # getting the closure from the env

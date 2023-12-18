@@ -40,9 +40,9 @@ class CEnv:
     def __len__(self):
         return len(self.stack)
     def lookup(self, xid:str):
-        for i, sid in enumerate(self.stack):
+        for i, sid in enumerate(reversed(self.stack)):
             if sid == xid:
-                return len(self.stack) - i - 1
+                return i
         raise Exception(xid + " not found in env")
     def add_offset(self, n:int, ph="offset"):
         stack = list(self.stack)
