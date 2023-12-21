@@ -4,9 +4,24 @@
 extern int64_t _entry();
 extern long _type;
 
+char read_byte() {
+  char c = getc(stdin);
+  return c;
+}
+
+char peek_byte() {
+  char c = getc(stdin);
+  ungetc(c, stdin);
+  return c;
+}
+
+void write_byte(char c) {
+  putc(c, stdout);
+}
+
 void print_result(int64_t x, int64_t t) {
   switch(t) {
-    case 0:
+    case 2:
       printf("%" PRId64, x);
       break;
     case 1:
@@ -16,7 +31,7 @@ void print_result(int64_t x, int64_t t) {
         printf("true");
       }
       break;
-    case 2:
+    case 3:
       printf("%c", x);
       break;
   }

@@ -19,7 +19,7 @@ def comp(e:Expr, do_type_check=False) -> asm:
     # checks
     if do_type_check and not check_typing(e, {}):
         raise CompErr("bad typing")
-    et = get_eval_type(e, {})
+    et = 2 #get_eval_type(e, {}) ALWAYS EVALS TO INT
     # compiling
     s = asm([
         [comp_env(e, CEnv([]))]
@@ -60,10 +60,29 @@ def comp_env(e, env:CEnv) -> dict:
 
 def comp_fun(f, xid, es, env):
     match xid:
-        case "print":
-            raise NotImplementedError()
-        case "input":
-            raise NotImplementedError()
+        case "rb":
+            assert len(es) == 0
+            return asm([
+                [pad_stack()],
+                [CALL, "read_byte"],
+                [unpad_stack()]
+            ])
+        case "wb":
+            assert len(es) == 1
+            return asm([
+                [pad_stack()],
+                [comp_env(es[0], env)],
+                [MOV, RDI, RAX],
+                [CALL, "write_byte"],
+                [unpad_stack()]
+            ])
+        case "pb":
+            assert len(es) == 0
+            return asm([
+                [pad_stack()],
+                [CALL, "peek_byte"],
+                [unpad_stack()]
+            ])
         case fid:
             env.lookup(fid) # make sure fid in is scope
             return asm([

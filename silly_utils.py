@@ -162,8 +162,14 @@ def asm_prog_to_str(asm:dict, entry_label="_entry", type_label="_type", nasm_arg
     nasm_args = "\n".join(nasm_args)
     type_val = asm["EVAL_TYPE"]
     return (
+
+        f"[extern read_byte]\n"
+        f"[extern peek_byte]\n"
+        f"[extern write_byte]\n"
+        
         f"global {entry_label}\n"
         f"global {type_label}\n"
+
         f"{nasm_args}\n\n"
         f"section .data\n"
         f"{type_label}: db {type_val}\n\n"
@@ -173,6 +179,17 @@ def write_prog_file(asm, path):
     with open(path, "w") as file:
         file.write(asm_prog_to_str(asm))
 
+def pad_stack():
+    return asm([
+        [MOV, R15, RSP],
+        [AND, R15, 0b1000],
+        [SUB, RSP, R15]
+    ])
+
+def unpad_stack():
+    return asm([
+        [ADD, RSP, R15]
+    ])
 
 if __name__ == "__main__":
 

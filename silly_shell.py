@@ -82,7 +82,7 @@ class Shell():
                 self.exit_msg = "keyboard interupt"
                 running = False
             except Exception as e:
-                self.exit_msg = str(e)
+                self.exit_msg = e
                 running = False
 
     
